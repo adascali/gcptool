@@ -1,0 +1,13 @@
+# Cache directory (created at runtime)
+.gcp-tools/
+
+# macOS
+.DS_Store
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
