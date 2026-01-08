@@ -1,6 +1,6 @@
-# GCP Compute Engine Automation Toolkit
+# gcptool - GCP Compute Engine Automation Toolkit
 
-A collection of bash scripts to automate common Google Cloud Platform Compute Engine operations across multiple projects.
+A bash CLI toolkit to manage Google Cloud Platform Compute Engine instances across multiple projects. Built for teams managing AEM (Adobe Experience Manager) infrastructure.
 
 ## Prerequisites
 
@@ -8,130 +8,140 @@ A collection of bash scripts to automate common Google Cloud Platform Compute En
 - Authenticated with: `gcloud auth login`
 - Proper IAM permissions for Compute Engine operations
 
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/adascali/gcptool.git
+cd gcptool
+
+# Make executable
+chmod +x gcp-tools.sh
+
+# Add to your PATH (choose one):
+
+# Option 1: Symlink (recommended)
+ln -s "$(pwd)/gcp-tools.sh" /usr/local/bin/gcptool
+
+# Option 2: Add to .zshrc/.bashrc
+echo 'alias gcptool="/path/to/gcptool/gcp-tools.sh"' >> ~/.zshrc
+
+# Enable tab completion
+echo 'source /path/to/gcptool/gcp-completion.bash' >> ~/.zshrc
+```
+
 ## Quick Start
 
 ```bash
-# Make the script executable
-chmod +x gcp-tools.sh
+# List all projects
+gcptool projects
 
-# Run the interactive menu
-./gcp-tools.sh
+# List instances (auto-detects project!)
+gcptool ssh qiddiya-dev-author1
 
-# Or use direct commands
-./gcp-tools.sh help
+# Get help
+gcptool help
 ```
 
 ## Available Commands
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `projects` | List all GCP projects | `./gcp-tools.sh projects` |
-| `instances` | List all VMs in a project | `./gcp-tools.sh instances my-project` |
-| `ip` | Get instance IP address | `./gcp-tools.sh ip my-project my-vm` |
-| `ssh` | SSH to an instance | `./gcp-tools.sh ssh my-project my-vm` |
-| `start` | Start an instance | `./gcp-tools.sh start my-project my-vm` |
-| `stop` | Stop an instance | `./gcp-tools.sh stop my-project my-vm` |
-| `snapshot` | Create disk snapshot | `./gcp-tools.sh snapshot my-project my-disk` |
-| `snapshots` | List all snapshots | `./gcp-tools.sh snapshots my-project` |
-| `aem` | Open AEM login in browser | `./gcp-tools.sh aem my-project my-aem-server` |
-| `menu` | Interactive menu | `./gcp-tools.sh menu` |
+| `projects` | List all GCP projects | `gcptool projects` |
+| `instances` | List all VMs | `gcptool list instances` |
+| `ssh` | SSH to an instance | `gcptool ssh my-instance` |
+| `start` | Start instance(s) | `gcptool start my-project vm1 vm2` |
+| `stop` | Stop instance(s) | `gcptool stop my-project vm1` |
+| `ip` | Get instance IP | `gcptool ip my-instance` |
+| `snapshot` | Create disk snapshot | `gcptool snapshot my-project my-disk` |
+| `aem` | Open AEM login in browser | `gcptool aem my-instance` |
+| `crx` | Open CRX/DE | `gcptool crx my-instance` |
+| `status` | Quick status all projects | `gcptool status` |
+| `search` | Search instances by name | `gcptool search author` |
 
-## Usage Examples
+## Key Features
 
-### List All Projects
+### Auto-Detection
+Most commands auto-detect the project from the instance name:
 ```bash
-./gcp-tools.sh projects
+# No need to specify project!
+gcptool ssh qiddiya-dev-author1mecentral2
+gcptool ip qiddiya-prod-publish1mecentral2
+gcptool aem qiddiya-dev-author1mecentral2
 ```
 
-### List Instances in a Project
+### AMSTOOL-Style SSH Commands
 ```bash
-./gcp-tools.sh instances my-gcp-project
+gcptool ssha <project>    # SSH to all Authors
+gcptool sshp <project>    # SSH to all Publishers
+gcptool sshd <project>    # SSH to all Dispatchers
+gcptool sshaem <project>  # SSH to all AEM hosts
 ```
 
-### SSH to an Instance
+### Parallel Operations
 ```bash
-# Zone is auto-detected
-./gcp-tools.sh ssh my-project my-instance-name
+# Start multiple VMs in parallel
+gcptool start my-project vm1 vm2 vm3
 
-# Or specify zone explicitly
-./gcp-tools.sh ssh my-project my-instance-name us-central1-a
+# Stop with force flag (no confirmation)
+gcptool stop my-project vm1 vm2 --force
 ```
 
-### Start/Stop Instances
+### Remote Commands
 ```bash
-# Start an instance
-./gcp-tools.sh start my-project my-instance
+# Run command on single instance
+gcptool cmd my-instance 'uptime'
 
-# Stop an instance (will prompt for confirmation)
-./gcp-tools.sh stop my-project my-instance
+# Run on all matching instances
+gcptool cmdx my-project publish 'df -h'
 ```
 
-### Create a Snapshot
+### Load Balancer Management
 ```bash
-# Auto-generates snapshot name with timestamp
-./gcp-tools.sh snapshot my-project my-disk-name
-
-# Custom snapshot name
-./gcp-tools.sh snapshot my-project my-disk us-central1-a my-backup-snapshot
+gcptool lb status my-dispatcher    # Check LB membership
+gcptool lb disable my-dispatcher   # Remove from LB
+gcptool lb enable my-dispatcher    # Add to LB
 ```
 
-### Open AEM Login Page
-```bash
-# Opens https://<instance-ip>/libs/granite/core/content/login.html
-./gcp-tools.sh aem my-project my-aem-instance
-```
+## Caching
 
-## Interactive Mode
-
-Run without arguments or with `menu` to get an interactive guided experience:
+Results are cached for 5 minutes for faster subsequent queries.
 
 ```bash
-./gcp-tools.sh
-# or
-./gcp-tools.sh menu
+gcptool cache          # Update cache
+gcptool cache-clear    # Clear cache
+gcptool list instances --refresh  # Bypass cache
 ```
 
-## Individual Scripts
+## Documentation
 
-For convenience, you can also use the individual wrapper scripts:
-
-- `gcp-list-projects.sh` - List all projects
-- `gcp-list-instances.sh <project>` - List instances
-- `gcp-ssh.sh <project> <instance>` - SSH to instance
-- `gcp-start.sh <project> <instance>` - Start instance
-- `gcp-stop.sh <project> <instance>` - Stop instance
-- `gcp-snapshot.sh <project> <disk>` - Create snapshot
-- `gcp-aem.sh <project> <instance>` - Open AEM login
-
-## Tips
-
-1. **Zone Auto-Detection**: Most commands auto-detect the zone if not provided
-2. **Tab Completion**: Works with gcloud's built-in completion
-3. **Multiple Projects**: Use `projects` command to see all available projects
-4. **Scripting**: Source the main script to use functions in your own scripts:
-   ```bash
-   source gcp-tools.sh
-   list_instances "my-project"
-   ```
+- **Quick Reference**: `gcptool cheat`
+- **Full Manual**: `gcptool man`
+- **Help**: `gcptool help`
 
 ## Troubleshooting
-
-### Permission Denied
-```bash
-chmod +x gcp-tools.sh
-```
 
 ### Not Authenticated
 ```bash
 gcloud auth login
-gcloud config set project YOUR_DEFAULT_PROJECT
 ```
 
 ### Instance Not Found
-- Verify the instance name with `./gcp-tools.sh instances <project>`
-- Check that you have access to the project
+```bash
+gcptool cache          # Refresh cache
+gcptool search <name>  # Search for instance
+```
+
+### Permission Denied
+Ensure your GCP account has the necessary IAM roles:
+- `roles/compute.viewer` - For read operations
+- `roles/compute.instanceAdmin` - For start/stop
+- `roles/compute.storageAdmin` - For snapshots
 
 ## License
 
 MIT - Feel free to modify and distribute.
 
+## Author
+
+Created by Diana Adascalitei, Dec 2025
